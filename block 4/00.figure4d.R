@@ -1,6 +1,3 @@
-#####################################################################################
-####-------------------------------------Figure4 d------------------------------#####
-#####################################################################################
 suppressPackageStartupMessages({
 library(RColorBrewer)
 library(ArchR)
@@ -8,7 +5,7 @@ library(dplyr)
 library(ggplot2)
 })
 
-proj <-  loadArchRProject("muscle_MuSC")
+proj <-  loadArchRProject("./")
 
 markersTest_com <- getMarkerFeatures(
     ArchRProj = proj, 
