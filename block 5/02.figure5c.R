@@ -7,7 +7,6 @@
 		     mode = c("comparison", "single"),
 		     comparison = c(1, 2),
 		       color.use = age_group_color)
- ggsave('immune_net.pdf',rkn, width = 4, height =4)
 
 
  factor = c('WNT','IGF','BMP','NOTCH','EGF','FGF','HGF')
@@ -30,4 +29,3 @@
 		     mode = c("comparison", "single"),
 		     comparison = c(1, 2),
 		       color.use = age_group_color)
- ggsave('ecm_pw_f.pdf',rkn, width = 4, height =4)
