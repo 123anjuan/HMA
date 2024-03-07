@@ -1,3 +1,5 @@
+args <- commandArgs(T)
+
 library(CellChat)
 library(Seurat)
 library(ggplot2)
@@ -19,7 +21,7 @@ library(ComplexHeatmap)
 library(forcats)
 options(stringsAsFactors = FALSE)
 
-rds = readRDS('Integrated_object.rds') # converted from scanpy object
+rds = readRDS(args[1]) 
 ide = as.character(unique(rds$anno_0629))
 
 # remove unwanted cell types
