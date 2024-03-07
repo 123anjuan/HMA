@@ -1,3 +1,5 @@
+args <- commandArgs(T)
+
 library(doParallel)
 library(BuenColors)
 library(FigR)
@@ -13,12 +15,12 @@ library(pheatmap)
 library(RColorBrewer)
 library(viridis)
 ## type1
-figR.d<-readRDS("./output/type1.figR.d.rds")
+figR.type1<-readRDS(args[1])
 rankDrivers(figR.d,rankBy = "meanScore")
 rankDrivers_gene<-rankDrivers(figR.d,rankBy = "meanScore")
 write.csv(rankDrivers_gene$data,"./output/type1.rankDrivers.csv",row.names=T)
 ## type2
-figR.d<-readRDS("./output/type2.figR.d.rds")
+figR.type2<-readRDS(args[2])
 rankDrivers(figR.d,rankBy = "meanScore")
 rankDrivers_gene<-rankDrivers(figR.d,rankBy = "meanScore")
 write.csv(rankDrivers_gene$data,"./output/type2.rankDrivers.csv",row.names=T)
