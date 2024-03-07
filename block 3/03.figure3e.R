@@ -1,14 +1,16 @@
+args <- commandArgs(T)
+
 library(ggplot2)
 library(ArchR)
 library(Seurat)
 addArchRGenome("hg38") #hg19/mm9/mm10(new)
 addArchRThreads(threads = 6)
-metadata<-read.csv("snRNA_fiber.meta.csv",row.names=1)
-type1_pair<-readRDS("rna_atac_pairing.rds")
+metadata<-read.csv(args[1],row.names=1) #the metadata of myonucleus snRNA rds
+type1_pair<-readRDS(args[2]) #rna atac pairing rds
 type1_pair<-as.data.frame(type1_pair)
 row.names(type1_pair)<-type1_pair$RNA
 
-type2_pair<-readRDS("rna_atac_pairing.rds")
+type2_pair<-readRDS(args[3]) #rna atac pairing rds
 type2_pair<-as.data.frame(type2_pair)
 row.names(type2_pair)<-type2_pair$RNA
 
@@ -45,9 +47,6 @@ names(col)<-c(paste("type1_",1:10,sep=""),paste("type2_",1:10,sep=""))
 p2 <- plotEmbedding(ArchRProj = proj_sub, colorBy = "cellColData", name = "rank_rna", embedding = "UMAPHarmony",pal=col,
                     size = 0.2,
                     bgWidth = 0,fgColor = "#00000000",bgColor = "#00000000")+ theme_void() +  theme(legend.position="none")+   theme(title=element_blank())
-plotPDF(p2, name = "ATAC_RNA_rank.pdf", ArchRProj = proj, addDOC = FALSE,width = 2.5, height = 2.5)
-
-saveArchRProject(ArchRProj=proj_sub,outputDirectory="fiber_proj",overwrite = T,load=F,dropCells = F)
 
 type1 <- meta[meta$rank_type1_new != "NA",]
 cell.prop<-as.data.frame(prop.table(table(type1$group, type1$rank_type1_new)))
@@ -77,5 +76,3 @@ scale_fill_manual(values=c('#A15DBA','#50BA47'))+ theme_classic()+
 theme(axis.title = element_blank()) +
 theme(axis.text.x = element_text(colour = "black", size = rel(2),angle = 45,hjust = 0.8,vjust = 0.8)) +
 theme(axis.text.y = element_text(colour = "black", size = rel(2))) 
-
-ggsave("./plot/barplot_type1_type2_age.pdf",p1 + p2,height = 4,width = 15)
