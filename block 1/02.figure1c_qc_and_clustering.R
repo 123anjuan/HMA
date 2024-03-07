@@ -122,7 +122,7 @@ proj <- addGeneIntegrationMatrix(
     nameScore = "predictedScore_Un"
 )
 
-pathToMacs2 <- "/home/an_juan/miniconda3/bin/macs2"
+pathToMacs2 <- "./miniconda3/bin/macs2"
 proj <- addGroupCoverages(ArchRProj = proj, groupBy = "predictedGroup_Un")
 proj <- addReproduciblePeakSet(
     ArchRProj = proj, 
