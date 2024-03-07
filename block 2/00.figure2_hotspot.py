@@ -17,9 +17,10 @@ import matplotlib.colors
 import seaborn as sns
 import pickle
 import hotspot
+args = sys.argv
 
 #final
-adata_3 = sc.read_h5ad('Fiber_scsn_raw_count_149174.h5ad')
+adata_3 = sc.read_h5ad(args[1])
 adata_3
 
 hs = hotspot.Hotspot(adata_3, model='danb', layer_key = 'counts',latent_obsm_key='X_umap')
@@ -72,11 +73,8 @@ with open(HOTSPOT, "wb") as f:
 
 
 results = hs.results.join(hs.modules)
-results.to_csv("".join([NAME,"-Gene.csv"]))
 
 module_scores = hs.calculate_module_scores()
-module_scores.to_csv("".join([NAME,"-module_score.csv"]))
 
 plt.rcParams['figure.figsize'] = (15.0, 12.0)
 hs.plot_local_correlations()
-plt.savefig("".join([NAME,"-module_number.pdf"]), dpi = 600)
