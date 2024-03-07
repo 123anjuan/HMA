@@ -1,3 +1,4 @@
+args <- commandArgs(T)
 library(Seurat)
 library(Matrix)
 library(pheatmap)
@@ -14,7 +15,7 @@ library(dplyr)
 library(cowplot)
 library(ggsci)
 
-rds = readRDS('Integrated_object.snRNA.raw.rds')#snRNA rds
+rds = readRDS(args[1])#snRNA rds
 
 rds$celltype = as.character(rds$celltype)
 DefaultAssay(rds) <- 'RNA'
@@ -120,9 +121,7 @@ sizes <- sizes * 0.75
 farben <- rep("grey", length(adj_pvals))
 farben[which(adj_pvals < 0.05)] <- "purple"
 
-pdf("snRNA_noise.pdf",height=6,width=8)
 ord <- order(names(res))
 par(mar = c(15,5,2,5))
-boxplot(do.call(c, res[ord]), las = 2, outline = F, col = c("#50BA47", "#A15DBA"), ylab = "Transcriptional noise", xaxt = 'n')
+boxplot(do.call(c, res[ord]), las = 2, outline = F, col = c("#50BA47", "#A15DBA"), ylab = "Transcriptional noise", xaxt = 'n') +
 axis(1, at = seq(from = 1.5, to = 22.5, by = 2), names(res)[ord], las = 2)
-dev.off()
