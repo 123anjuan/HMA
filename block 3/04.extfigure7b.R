@@ -1,5 +1,3 @@
-args <- commandArgs(T)
-
 library(doParallel)
 library(BuenColors)
 library(FigR)
@@ -24,7 +22,7 @@ get_upper_tri <- function(cormat){
     return(cormat)
   }
 ######################### type1
-atac_sub_cor<-read.csv(args[1],row.names=1) #type1 dorc atac correlation
+atac_sub_cor<-read.csv("type1_dorc_atac_1000_cor.csv",row.names=1)
 metadata<-meta[colnames(atac_sub_cor),]
 metadata = subset(metadata,select = "rank_new_label")
 #metadata$rank_type1= factor(metadata$rank_type1, levels = 1:100)
