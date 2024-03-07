@@ -1,10 +1,13 @@
+args <- commandArgs(T)
+
 library(Seurat)
 library(ggplot2)
 library(dplyr)
 library(monocle3)
 library(patchwork)
 library(sctransform)
-rds <- readRDS("fiber_recluster_annotation.rds")
+
+rds <- readRDS(args[1]) #myonucleus snRNA-seq rds
 type1 <- rds[,rds$anno_0713 %in% c("Type I","Type I-Aging","Type I-NMJ 1","Type I-NMJ 2")]
 type1 <- type1[,type1$integrated_snn_res.2 %in% c(2,4,7,8,10,12,13,14,15,16,17,18,19,21,26,29)]
 type2 <- rds[,rds$anno_0713 %in% c("Type II","Type II-Aging","Type II-ENOX1+")]
@@ -46,7 +49,6 @@ p<-plot_cells(cds_t1,
            group_label_size=4,cell_size=0.3,
            trajectory_graph_segment_size=0.5)+NoLegend()
 
-ggsave("pseudotime_custers_type1.pdf",p,height=6,width=6)
 pseudotime <- as.data.frame(cds_t1@principal_graph_aux$UMAP$pseudotime)
 colnames(pseudotime) = 'pseu_type1'
 pseudotime$rank_type1=cut_number(pseudotime$pseu_type1,n=100,labels=F)
@@ -87,7 +89,6 @@ p<-plot_cells(cds_t2_two,
            group_label_size=4,cell_size=0.3,
            trajectory_graph_segment_size=0.5)+NoLegend()
 
-ggsave("pseudotime_custers_type2.pdf",p,height=6,width=6)
 pseudotime <- as.data.frame(cds_t2@principal_graph_aux$UMAP$pseudotime)
 colnames(pseudotime) = 'pseu_type2'
 pseudotime$rank_type2=cut_number(pseudotime$pseu_type2,n=100,labels=F)
@@ -102,4 +103,3 @@ rds$pseu[match(rownames(type2@meta.data), rownames(rds@meta.data))] <- type2$pse
 rds$rank[match(rownames(type2@meta.data), rownames(rds@meta.data))] <- type2$rank_type2
 
 p <- FeaturePlot(rds,features = "pseu", order = T) + scale_colour_gradientn(colours = rev(viridis(7)))
-ggsave("fiber_pseu.pdf",p,height = 4,width = 4,dpi=300)
