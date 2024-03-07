@@ -36,5 +36,3 @@ obj.combined.sct <- FindNeighbors(obj.combined.sct, reduction = "pca", dims = 1:
 obj.combined.sct <- FindClusters(obj.combined.sct, resolution = 0.8)
 
 DefaultAssay(obj.combined) <- "RNA"
-
-saveRDS(obj.combined.sct,"hM-sn_scRNA-seq_celltype.rds")
