@@ -1,4 +1,5 @@
 #LTSR
+args <- commandArgs(T)
 source('RL003_function_collection_GitHub.R')
 library(Seurat)
 library(ggplot2)
@@ -7,7 +8,7 @@ library(showtext)
 showtext_auto()
 library(egg)
 
-meta = read.csv('scRNA_snRNA_snATAC_11_celltype.csv',row.names=1)
+meta = read.csv(args[1],row.names=1)
 Y = table(meta$patient_id_sample,meta$Final_annotation)
 
 mymetadata <- meta[!duplicated(meta$patient_id_sample),]##library
@@ -120,8 +121,3 @@ postmean_oldAgeGroupsPlusSeverity <- postmean_oldAgeGroupsPlusSeverity[myClust,]
 lfsr_oldAgeGroupsPlusSeverity <- lfsr_oldAgeGroupsPlusSeverity[myClust,]
 par(mar=c(13,12,8,10))
 Dotplot(postmean_oldAgeGroupsPlusSeverity, SORT=c(F,F),zlim=c(log(1/3),log(3)),ltsr=1-lfsr_oldAgeGroupsPlusSeverity, cex=0.8,srt=90,cex.axis = .8)
-
-pdf('dotplot.pdf',width=5,height=6)
-par(mar=c(5,5,10,10))
-Dotplot(postmean_oldAgeGroupsPlusSeverity, SORT=c(F,F),zlim=c(log(1/3),log(3)),ltsr=1-lfsr_oldAgeGroupsPlusSeverity, cex=0.8,srt=90,cex.axis = .8)
-dev.off()
