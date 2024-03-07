@@ -1,3 +1,15 @@
+args <- commandArgs(T)
+
+library(Seurat)
+library(ggplot2)
+library(dplyr)
+library(monocle3)
+library(patchwork)
+library(sctransform)
+
+type1 <- readRDS(args[1]) 
+type2 <- readRDS(args[2])
+
 df <- type1@meta.data %>%
   group_by(rank_type1, group) %>%
   summarise(
