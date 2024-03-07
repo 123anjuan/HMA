@@ -1,3 +1,5 @@
+args <- commandArgs(T)
+
 library(doParallel)
 library(BuenColors)
 library(FigR)
@@ -22,7 +24,7 @@ get_upper_tri <- function(cormat){
     return(cormat)
   }
 ######################### type1
-atac_sub_cor<-read.csv("./output/type1_dorc_atac_1000_cor.csv",row.names=1)
+atac_sub_cor<-read.csv(args[1],row.names=1) #type1 dorc atac correlation
 metadata<-meta[colnames(atac_sub_cor),]
 metadata = subset(metadata,select = "rank_new_label")
 #metadata$rank_type1= factor(metadata$rank_type1, levels = 1:100)
@@ -65,7 +67,6 @@ q1<-pheatmap(atac_sub_cor_utri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('./plot/type1_uppertricangle_atac.png',q1, dpi  = 600, width = 4, height = 4)
 atac_sub_cor_ltri = get_lower_tri(atac_sub_cor)
 q2<-pheatmap(atac_sub_cor_ltri,
          cluster_rows = F,
@@ -79,7 +80,6 @@ q2<-pheatmap(atac_sub_cor_ltri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('./plot/type1_lowertricangle_atac.png',q2, dpi  = 600, width = 4, height = 4)
 
 rna_sub_cor<-read.csv("./output/type1_dorc_rna_1000_cor.csv",row.names=1)
 rna_sub_cor<-rna_sub_cor[q$tree_row$order,q$tree_col$order]
@@ -115,7 +115,6 @@ p1<-pheatmap(rna_sub_cor_ltri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('./plot/type1_lowertricangle_rna.png',p1, dpi  = 600, width = 4, height = 4)
 
 rna_sub_cor_utri = get_upper_tri(rna_sub_cor)
 p2<-pheatmap(rna_sub_cor_utri,
@@ -130,7 +129,6 @@ p2<-pheatmap(rna_sub_cor_utri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('./plot/type1_uppertricangle_rna.png',p2, dpi  = 600, width = 4, height = 4)
 
 ######################## type2
 atac_sub_cor<-read.csv("type2_dorc_atac_1000_cor.csv",row.names=1)
@@ -177,7 +175,6 @@ q1<-pheatmap(atac_sub_cor_utri,
          #legend = F,
          annotation_legend = F,
          color = col)
- ggsave('type2_uppertricangle_atac.png',q1, dpi  = 600, width = 4, height = 4)
 
  atac_sub_cor_ltri = get_lower_tri(atac_sub_cor)
 
@@ -231,7 +228,6 @@ p1<-pheatmap(rna_sub_cor_utri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('type2_uppertricangle_rna.png',p1, dpi  = 600, width = 4, height = 4)
 
 rna_sub_cor_ltri = get_lower_tri(rna_sub_cor)
 p2<-pheatmap(rna_sub_cor_ltri,
@@ -246,4 +242,3 @@ p2<-pheatmap(rna_sub_cor_ltri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('type2_lowertricangle_rna.png',p2, dpi  = 600, width = 4, height = 4)
