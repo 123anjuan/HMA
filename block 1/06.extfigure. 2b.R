@@ -1,9 +1,10 @@
 #correlation
+args <- commandArgs(T)
 library(psych)
 library(ggplot2)
 library(Seurat)
 
-seRNA = readRDS('RNA.rds')#RNA
+seRNA = readRDS(args[1])
 DefaultAssay(seRNA) = 'RNA'
 Idents(seRNA) = seRNA$celltype
 seRNA
@@ -38,8 +39,5 @@ averages_1 = averages_1[,colnames(averages_ATAC)]
 V1_Scaled <- t(scale(t(averages_ATAC), center = T, scale=T))
 V2_Scaled <- t(scale(t(averages_1), center = T, scale=T))
 cortest_psy <- corr.test(V1_Scaled, V2_Scaled, method = "pearson",adjust = "fdr")
-pdf("corheatmap.pdf",width=8,height=6)
 p = pheatmap(cortest_psy$r, cluster_rows = F, border_color = NA,cluster_cols = F, show_rownames = T, show_colnames = T,color = colorRampPalette(c("#999999","white","#ef8a62"))(100),angle_col = 90)
-print(p)
-dev.off()
-print(p)
+
