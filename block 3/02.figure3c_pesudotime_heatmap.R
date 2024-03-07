@@ -1,3 +1,15 @@
+args <- commandArgs(T)
+
+library(Seurat)
+library(ggplot2)
+library(dplyr)
+library(monocle3)
+library(patchwork)
+library(sctransform)
+
+type1 <- readRDS(args[1]) 
+type2 <- readRDS(args[2])
+
 coding_gene <- read.csv("hsapiens_ensembl_gene.txt",sep = "\t")
 
 exp <- t(as.matrix(GetAssayData(type1, assay = 'RNA', slot = 'data')))
