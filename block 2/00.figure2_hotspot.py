@@ -20,7 +20,7 @@ import hotspot
 args = sys.argv
 
 #final
-adata_3 = sc.read_h5ad(args[1]) #sn/scRNA-seq h5ad
+adata_3 = sc.read_h5ad(args[1]) #sn/scRNA-seq raw count
 adata_3
 
 hs = hotspot.Hotspot(adata_3, model='danb', layer_key = 'counts',latent_obsm_key='X_umap')
