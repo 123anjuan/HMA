@@ -8,7 +8,7 @@ library(showtext)
 showtext_auto()
 library(egg)
 
-meta = read.csv(args[1],row.names=1)
+meta = read.csv(args[1],row.names=1) #the matedata of snRNA object
 Y = table(meta$patient_id_sample,meta$Final_annotation)
 
 mymetadata <- meta[!duplicated(meta$patient_id_sample),]##library
