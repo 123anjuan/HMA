@@ -22,7 +22,7 @@ get_upper_tri <- function(cormat){
     return(cormat)
   }
 ######################### type1
-atac_sub_cor<-read.csv("type1_dorc_atac_1000_cor.csv",row.names=1)
+atac_sub_cor<-read.csv(args[1],row.names=1) #type1 dorc ATAC correlation
 metadata<-meta[colnames(atac_sub_cor),]
 metadata = subset(metadata,select = "rank_new_label")
 #metadata$rank_type1= factor(metadata$rank_type1, levels = 1:100)
@@ -79,7 +79,7 @@ q2<-pheatmap(atac_sub_cor_ltri,
          annotation_legend = F,
          color = col)
 
-rna_sub_cor<-read.csv("./output/type1_dorc_rna_1000_cor.csv",row.names=1)
+rna_sub_cor<-read.csv(args[2],row.names=1) #type1 dorc RNA correlation
 rna_sub_cor<-rna_sub_cor[q$tree_row$order,q$tree_col$order]
 
 bk = seq(0.5, 1,by = 0.01)
@@ -129,7 +129,7 @@ p2<-pheatmap(rna_sub_cor_utri,
          color = col)
 
 ######################## type2
-atac_sub_cor<-read.csv("type2_dorc_atac_1000_cor.csv",row.names=1)
+atac_sub_cor<-read.csv(args[3],row.names=1) #type2 dorc ATAC correlation
 metadata<-meta[colnames(atac_sub_cor),]
 metadata = subset(metadata,select = "rank_new_label")
 #metadata$rank_type1= factor(metadata$rank_type1, levels = 1:100)
@@ -188,9 +188,8 @@ q1<-pheatmap(atac_sub_cor_utri,
          legend = F,
          annotation_legend = F,
          color = col)
-ggsave('type2_lowertricangle_atac.png',q2, dpi  = 600, width = 4, height = 4)
 
-rna_sub_cor<-read.csv("type2_dorc_rna_1000_cor.csv",row.names=1)
+rna_sub_cor<-read.csv(args[4],row.names=1) #type2 dorc RNA correlation
 rna_sub_cor<-rna_sub_cor[q$tree_row$order,q$tree_col$order]
 
 
