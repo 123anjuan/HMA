@@ -3,7 +3,7 @@ library(ArchR)
 library(Seurat)
 addArchRThreads(threads = 6)
 addArchRGenome("hg38")
-proj<-loadArchRProject(path = "save_proj_peak", force = T, showLogo = F)
+proj<-loadArchRProject(path = ./, force = T, showLogo = F)
 
 proj<- addGroupCoverages(ArchRProj = proj, groupBy = "celltype",
 )
@@ -97,4 +97,3 @@ bigplot=ggplot(data.df, aes(x=gwas,y=-log10(Coefficient_P_value), color=Name)) +
   labs(y="-log10(Coefficient P-value)")+
   geom_point(size=3) + coord_flip()+ scale_color_brewer(palette="Set3")+ theme_bw()
 
-ggsave("resuts_sc_gwas.pdf", bigplot,dpi = 300)
