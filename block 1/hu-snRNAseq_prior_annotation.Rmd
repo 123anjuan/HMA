@@ -1,0 +1,425 @@
+---
+title: "hu_snRNAseq analysis"
+output:
+  jpeg_document: default
+  html_notebook: default
+---
+Load libraries 
+
+```{r message=TRUE, warning=TRUE}
+# Load libraries
+library(SingleCellExperiment)
+library(Seurat)
+library(tidyverse)
+library(Matrix)
+library(scales)
+library(cowplot)
+library(RCurl)
+library(future)
+library(ggplot2)
+library(sleepwalk)
+library(SCINA)
+library(prettydoc)
+library(wesanderson)
+library(parallel)
+library(MASS)
+library(sctransform)
+library(harmony)
+library(RColorBrewer)
+
+```
+
+1. First we read the seurat object with "readRDS" function and we specify the file path. Next, we evaluate the UMAP projection that they have already done
+
+```{r}
+#Set working directory
+path <- "~/Desktop/"
+
+setwd(path)
+
+#Read Seurat object
+df <- readRDS(file = "hu-snRNAseq.rds")
+df_name <- "hu_snRNAseq"
+```
+
+2. Check quality control, remove low quality cells
+
+```{r}
+# Add number of genes per UMI for each cell to metadata
+df$log10GenesPerUMI <- log10(df$nFeature_RNA) / log10(df$nCount_RNA)
+
+# Compute percent mito ratio
+df$mitoRatio <- PercentageFeatureSet(object = df, pattern = "^MT-")
+df$mitoRatio <- df@meta.data$mitoRatio / 100
+
+metadata <- df@meta.data
+
+# Add cell IDs to metadata
+metadata$cells <- rownames(metadata)
+
+# Rename columns
+metadata <- metadata %>%
+        dplyr::rename(#sample = orig.ident,
+                      nUMI = nCount_RNA,
+                      nGene = nFeature_RNA)
+
+# Add metadata back to Seurat object
+df@meta.data <- metadata
+                           
+```
+
+Now we visualize the metrics
+
+```{r}
+# Visualize the number of cell counts per sample
+nb.cols <- length(levels(factor(df@meta.data$sample)))
+mycolors2 <- colorRampPalette(wes_palette(n=4, name = "GrandBudapest2"))(nb.cols)
+
+metadata %>% 
+  	ggplot(aes(x=sample, fill=sample)) + 
+  	geom_bar() +
+   scale_fill_manual(values = mycolors2) +
+   theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+   theme(legend.position="bottom") + 
+  	ggtitle("NCells")
+   ggsave(file=paste(c(path,"NCells",".jpeg"), collapse = ""))
+
+
+# Visualize the number UMIs/transcripts per cell
+metadata %>% 
+  	ggplot(aes(color=sample, x=nUMI, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() + 
+   scale_fill_manual(values = mycolors2) +
+   scale_color_manual(values = mycolors2) +
+  	theme_classic() +
+  	ylab("Cell density") +
+   theme(legend.position="bottom") + 
+   geom_vline(xintercept = 700)
+   ggsave(file=paste(c(path,"Cell density",".jpeg"), collapse = ""))
+
+# Visualize the distribution of genes detected per cell via histogram
+metadata %>% 
+  	ggplot(aes(color=sample, x=nGene, fill= sample)) + 
+  	geom_density(alpha = 0.2) + 
+   scale_fill_manual(values = mycolors2) +
+   scale_color_manual(values = mycolors2) +
+   theme_classic() +
+  	scale_x_log10() + 
+   theme(legend.position="bottom") + 
+  	geom_vline(xintercept = 300)
+   ggsave(file=paste(c(path, "Gene distribution",".jpeg"), collapse = ""))
+
+# Visualize the distribution of genes detected per cell via boxplot
+metadata %>% 
+  	ggplot(aes(x=sample, y=log10(nGene), fill=sample)) + 
+  	geom_boxplot() + 
+   scale_fill_manual(values = mycolors2) +
+   theme_classic() +
+  	theme(axis.text.x = element_text(angle = 45, vjust = 1, hjust=1)) +
+  	theme(plot.title = element_text(hjust=0.5, face="bold")) +
+   theme(legend.position="bottom") + 
+  	ggtitle("NCells vs NGenes")
+   ggsave(file=paste(c(path, "NCellsvsNGenes",".jpeg"), collapse = ""))
+
+# Visualize the correlation between genes detected and number of UMIs and determine whether strong presence of cells with low numbers of genes/UMIs
+metadata %>% 
+  	ggplot(aes(x=nUMI, y=nGene, color=mitoRatio)) + 
+  	geom_point() + 
+	scale_colour_gradient(low = "gray90", high = "black") +
+  	stat_smooth(method=lm) +
+  	scale_x_log10() + 
+  	scale_y_log10() + 
+  	theme_classic() +
+  	geom_vline(xintercept = 500) +
+  	geom_hline(yintercept = 250) +
+  	facet_wrap(~sample)
+   ggsave(file=paste(c(path, "genes_UMIs_corr",".jpeg"), collapse = ""))
+
+# Visualize the distribution of mitochondrial gene expression detected per cell
+metadata %>% 
+  	ggplot(aes(color=sample, x=percent.mt, fill=sample)) + 
+  	geom_density(alpha = 0.2) + 
+  	scale_x_log10() +
+   scale_fill_manual(values = mycolors2) +
+   scale_color_manual(values = mycolors2) +
+  	theme_classic() +
+   theme(legend.position="bottom") + 
+  	geom_vline(xintercept = 0.2)
+   ggsave(file=paste(c(path, "MTgenes_dist",".jpeg"), collapse = ""))
+
+# Visualize the overall complexity of the gene expression by visualizing the genes detected per UMI
+metadata %>%
+  	ggplot(aes(x=log10GenesPerUMI, color = sample, fill=sample)) +
+  	geom_density(alpha = 0.2) +
+   scale_fill_manual(values = mycolors2) +
+   scale_color_manual(values = mycolors2) +
+  	theme_classic() +
+   theme(legend.position="bottom") + 
+  	geom_vline(xintercept = 0.7)
+   ggsave(file=paste(c(path, "GenesperUMI",".jpeg"), collapse = ""))
+
+```
+
+3. Now process the dataset 
+
+Run scaling:
+
+```{r}
+plan("multiprocess", workers = 4)
+options(future.globals.maxSize = 8000 * 1024^2)
+df <- SCTransform(df, vars.to.regress = "percent.mt", verbose = TRUE)
+```
+
+
+Run clustering:
+
+```{r}
+#Paralelize the work and normalize
+options(future.globals.maxSize = 4000 * 1024^5)
+DefaultAssay(df) <- "SCT"
+df <- FindVariableFeatures(df, selection.method = "vst", nfeatures = 2000)
+#Perform the PCA reduction and visualization
+df <- RunPCA(df, verbose = FALSE)
+# t-SNE and Clustering
+df <- RunUMAP(df, dims = 1:30, verbose = FALSE)
+df <- FindNeighbors(df, dims = 1:30, verbose = FALSE)
+df <- FindClusters(df, resolution = 0.5, verbose = FALSE)
+
+```
+
+Integrate
+
+```{r}
+#Run the standard workflow for visualization and clustering
+options(future.globals.maxSize = 4000 * 1024^5)
+df.harmony <- df %>%
+   RunHarmony(group.by.vars = "orig.ident", plot_convergence = TRUE, assay.use = "SCT")
+
+df <- RunUMAP(df, dims = 1:30, verbose = FALSE)
+df.harmony <- RunUMAP(df.harmony, dims = 1:30, reduction = 'harmony', verbose = FALSE)
+
+# Visualization
+before <- DimPlot(df, reduction = "umap", group.by = "sample")
+after <- DimPlot(df.harmony, reduction = "umap", group.by = "sample")
+by_sample <- DimPlot(df.harmony, reduction = "umap", split.by = "sample")
+before|after
+```
+
+Perform clustering
+
+```{r}
+df.harmony <- FindNeighbors(df.harmony, dims = 1:30, verbose = FALSE)
+df.harmony <- FindClusters(df.harmony, resolution = 2, verbose = FALSE)
+df.harmony_markers <- FindAllMarkers(df.harmony, only.pos = TRUE, min.pct = 0.25, logfc.threshold = 0.25)
+df.harmony_markers %>%
+    group_by(cluster) %>%
+    slice_max(n = 2, order_by = avg_log2FC)
+
+View(df.harmony_markers)
+```
+
+
+4. Annotate
+
+Elaborate panel markers based on annotated populations
+
+```{r}
+markers <- c("PLP1", "S100B", "MYH11", "ACTA2", "PDGFRB", "RGS5","MYH7", "TNNT1", "MYH2", "MYH1", "TNNT3", "PAX7", "MYF5", "DLK1", "PDGFRA", "DCN", "SMOC2", "MRC1", "LYVE1", "CD74", "IL7R", "CCL5", "CXCR4", "PECAM1", "CDH5", "PLIN1", "GPAM", "PDE3B") 
+
+ALL_markers_dir <- paste(c(path,"/ALL_markers"), collapse = "")
+dir.create(ALL_markers_dir)
+setwd(ALL_markers_dir)
+
+#Plot each gene marker in the UMAP projection
+for (i in 1:length(markers)){
+  x <- markers[i]
+  plot <- FeaturePlot(df.harmony, features = x, order = TRUE, cols = c("rosybrown1", "tomato4"), raster = FALSE)
+  print(plot)
+  ggsave(file=paste(c(dataset_name,"_",x,".jpeg"), collapse = ""))
+  dev.off()
+}
+
+```
+
+MURAL CELL MARKERS
+
+```{r}
+
+#SMOOTH MUSCLE CELLS
+FeaturePlot(df.harmony, features = "MYH11", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "ACTA2", min.cutoff = "q9", order = TRUE, cols = c("rosybrown1", "tomato4"), raster = FALSE)
+FeaturePlot(df.harmony, features = "TAGLN", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+#PERICYTES
+FeaturePlot(df.harmony, features = "RGS5", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "CSPG4", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "PDGFRB", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+```
+
+GLIAL CELLS MARKERS
+
+```{r}
+FeaturePlot(df.harmony, features = "PROX1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "MPZ", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "NCAM1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "CDH19", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "SOX10", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "PLP1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+```
+
+ADIPOCITES MARKERS
+
+```{r}
+
+FeaturePlot(df.harmony, features = "PLIN1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "ADIPOQ", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "MMRN1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "CCL21", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+```
+
+TENOCYTES MARKERS
+
+```{r}
+
+FeaturePlot(df.harmony, features = "FMOD", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "TNMD", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "COL22A1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "SCX", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "DLG2", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "FBN1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+```
+
+ENDOTHELIAL MARKERS
+
+```{r}
+#FeaturePlot(df.harmony, features = "PCDHA6", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+#ARTERIAL 
+FeaturePlot(df.harmony, features = "FBLN5", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "DLL4", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "SEMA3G", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+#CAPILLARIES
+FeaturePlot(df.harmony, features = "RGCC", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+#VENOUS
+FeaturePlot(df.harmony, features = "EPHB4", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+```
+
+MYONUCLEI MARKERS
+
+```{r}
+FeaturePlot(df.harmony, features = "TTN", min.cutoff = "q9", order = T, cols = c("lightblue", "navy"), raster = FALSE)
+
+#IMMATURE MYOCYTE
+FeaturePlot(df.harmony, features = "MYMX", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "MYOG", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+#REG MYONUCLEI
+FeaturePlot(df.harmony, features = "FLNC", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "MYH3", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "MYH8", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "XIRP1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+```
+
+MTJ-NMJ MYONUCLEI MARKERS
+
+```{r}
+#NMJ
+FeaturePlot(df.harmony, features = "CHRNE", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "CHRNA1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "PRKAR1A", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "COL25A1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "UTRN", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "COLQ", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "ABLIM2", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "VAV3", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "UFSP1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+```
+
+MTJ
+
+```{r}
+#MTJ
+FeaturePlot(df.harmony, features = "COL22A1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "PIEZO2", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "COL24A1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "COL6A1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "FSTL1", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "COL6A3", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+FeaturePlot(df.harmony, features = "TIGD4", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+FeaturePlot(mini_df.harmony.harmony, features = "EYS", min.cutoff = "q9", order = TRUE, cols = c("lightblue", "navy"), raster = FALSE)
+
+
+```
+
+
+DOTPLOT
+
+```{r}
+#DotPlot of all markers
+DotPlot_name <- paste(c(dataset_name,"_DotPlot.jpeg"), collapse = "")
+jpeg(DotPlot_name, width = 15, height = 5)
+Dot_Plot <- DotPlot(mini_df.harmony, features = markers, cols = c("rosybrown1", "tomato4"), dot.scale = 5, scale.min = 0) + theme(axis.text.x = element_text(size = 5), axis.text.y = element_text(size = 10), legend.title = element_text(size = 12))
+Dot_Plot
+```
+
+HEATMAP
+
+```{r}
+#Heatmap
+Heatmap_name <- paste(c(dataset_name, "_Heatmap.jpeg"), collapse = "")
+jpeg(Heatmap_name)
+Heatmap <- DoHeatmap(df.harmony, features = markers, slot = "data", size = 2, angle = 90) + theme(text = element_text(size = 5))
+Heatmap
+#dev.off()
+```
+
+New annotation
+
+```{r}
+new.cluster.ids <- c("Type I", "Type IIa", "Type IIx", "NMJ", "MTJ", "FAPs", "ECs", "SMCs", "Macrophagues", "BTNKcells", "MuSCs")
+
+names(new.cluster.ids) <- levels(df.harmony)
+df.harmony <- RenameIdents(df.harmony, new.cluster.ids)
+annotated_df <- df.harmony
+saveRDS(annotated_df, file = "HMA_main_pops_annotated.rds")
+```
+
+
+Calculate cell proportions
+
+```{r}
+cell_number <- table(Idents(annotated_df), annotated_df$sample)
+write.table(cell_number, file = "hu_sn_cell_number.txt", sep = "\t")
+
+cell_perc <- proportions(table(Idents(annotated_df), margin = annotated_df$sample))
+write.table(cell_perc, file = "hu_sn_cell_percentage.txt", sep = "\t")
+
+```
+
+Subset each population in a different seurat object
+
+```{r}
+# Determine the two conditions 
+plan("multiprocess", workers = 4)
+options(future.seed=TRUE)
+options(future.globals.maxSize = 8000 * 1024^2)
+
+celltypes <- c(levels(Idents(annotated_df)))
+   
+  for (i in 1:length(celltypes)) {
+   x <- celltypes[i]
+   print(x)
+   celltype_subset <- subset(annotated_df, idents = x)
+   saveRDS(celltype_subset, file=paste(c(path,"hu_sn_", x,".rds"), collapse = ""))
+   }
+
+```
+
